@@ -1,0 +1,69 @@
+{
+  "StartAt": "Get Circuit Status",
+  "States": {
+    "Get Circuit Status": {
+      "Next": "Is Circuit Closed",
+      "Type": "Task",
+      "Comment": "Get Circuit Status",
+      "Resource": "${GetCircuitStatusFunctionArn}"
+    },
+    "Is Circuit Closed": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.CircuitStatus",
+          "StringEquals": "OPEN",
+          "Next": "Circuit Open"
+        },
+        {
+          "Variable": "$.CircuitStatus",
+          "StringEquals": "",
+          "Next": "Execute Lambda"
+        }
+      ]
+    },
+    "Circuit Open": {
+      "Type": "Fail"
+    },
+    "Update Circuit Status": {
+      "Next": "Circuit Open",
+      "Type": "Task",
+      "Comment": "Update Circuit Status",
+      "Resource": "${UpdateCircuitStatusFunctionArn}"
+    },
+    "Execute Lambda": {
+      "Next": "Circuit Closed",
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName.$": "$.TargetLambda"
+      },
+      "Comment": "Task to execute lambda. This will set circuit status to OPEN if the execution fails for three times or the task times out",
+      "TimeoutSeconds": 12,
+      "Retry": [
+        {
+          "BackoffRate": 1.5,
+          "MaxAttempts": 3,
+          "IntervalSeconds": 2,
+          "ErrorEquals": [
+            "States.TaskFailed",
+            "States.Timeout"
+          ]
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.TaskFailed",
+            "States.Timeout"
+          ],
+          "Next": "Update Circuit Status",
+          "ResultPath": "$.taskresult"
+        }
+      ]
+    },
+    "Circuit Closed": {
+      "Type": "Succeed"
+    }
+  }
+}

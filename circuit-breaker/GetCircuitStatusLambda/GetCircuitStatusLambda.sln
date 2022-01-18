@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetCircuitStatusLambda.Tests", "test\GetCircuitStatusLambda.Tests\GetCircuitStatusLambda.Tests.csproj", "{52E5BC76-7200-4FF6-8908-B7D2019A41A4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetCircuitStatusLambda", "src\GetCircuitStatusLambda\GetCircuitStatusLambda.csproj", "{8C68C442-4999-4AA4-B519-778784807104}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{52E5BC76-7200-4FF6-8908-B7D2019A41A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52E5BC76-7200-4FF6-8908-B7D2019A41A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52E5BC76-7200-4FF6-8908-B7D2019A41A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52E5BC76-7200-4FF6-8908-B7D2019A41A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C68C442-4999-4AA4-B519-778784807104}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C68C442-4999-4AA4-B519-778784807104}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C68C442-4999-4AA4-B519-778784807104}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C68C442-4999-4AA4-B519-778784807104}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

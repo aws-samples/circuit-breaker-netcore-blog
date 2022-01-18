@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sample SAM Template for circuit breaker pattern
+
+Resources:
+  CircuitBreakerStateMachine:
+    Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
+    Properties:
+      DefinitionUri: statemachine/circuitbreaker.asl.json
+      DefinitionSubstitutions:
+        GetCircuitStatusFunctionArn: !GetAtt GetCircuitStatusFunction.Arn
+        UpdateCircuitStatusFunctionArn: !GetAtt UpdateCircuitStatusFunction.Arn
+        DDBPutItem: !Sub arn:${AWS::Partition}:states:::dynamodb:putItem
+        DDBTable: !Ref CircuitBreakerTable
+      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - AWSLambdaRole
+        - DynamoDBWritePolicy:
+            TableName: !Ref CircuitBreakerTable
+
+  GetCircuitStatusFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./GetCircuitStatusLambda/src/GetCircuitStatusLambda/
+      Handler: GetCircuitStatusLambda::GetCircuitStatusLambda.GetCircuitStatus::FunctionHandler
+      Runtime: dotnetcore3.1
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - CloudWatchLogsFullAccess
+        - AWSXrayFullAccess
+        - AWSStepFunctionsFullAccess
+
+
+  UpdateCircuitStatusFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./UpdateCircuitStatusLambda/src/UpdateCircuitStatusLambda/
+      Handler: UpdateCircuitStatusLambda::UpdateCircuitStatusLambda.UpdateCircuitStatus::FunctionHandler
+      Runtime: dotnetcore3.1
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - CloudWatchLogsFullAccess
+        - AWSXrayFullAccess
+        - AWSStepFunctionsFullAccess      
+
+  TestCircuitBreakerFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./TestCircuitBreaker/src/TestCircuitBreaker/
+      Handler: TestCircuitBreaker::TestCircuitBreaker.Function::FunctionHandler
+      Runtime: dotnetcore3.1
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - CloudWatchLogsFullAccess
+        - AWSXrayFullAccess
+        - AWSStepFunctionsFullAccess
+  
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./HelloWorld/src/HelloWorld/
+      Handler: HelloWorld::HelloWorld.Function::FunctionHandler
+      Runtime: dotnetcore3.1
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - CloudWatchLogsFullAccess
+        - AWSXrayFullAccess
+        - AWSStepFunctionsFullAccess
+
+
+  CircuitBreakerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CircuitBreaker
+      KeySchema:
+        - AttributeName: ServiceName
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: ServiceName
+          AttributeType: S
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TimeToLiveSpecification:
+        AttributeName: ExpireTimeStamp
+        Enabled: true
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+      

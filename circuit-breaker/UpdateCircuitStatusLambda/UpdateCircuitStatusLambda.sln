@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateCircuitStatusLambda.Tests", "test\UpdateCircuitStatusLambda.Tests\UpdateCircuitStatusLambda.Tests.csproj", "{769773D9-6B29-4300-8FB3-1998984F63AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateCircuitStatusLambda", "src\UpdateCircuitStatusLambda\UpdateCircuitStatusLambda.csproj", "{F6E9BD24-DE1D-4007-A131-2407AC10251B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{769773D9-6B29-4300-8FB3-1998984F63AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{769773D9-6B29-4300-8FB3-1998984F63AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{769773D9-6B29-4300-8FB3-1998984F63AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{769773D9-6B29-4300-8FB3-1998984F63AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6E9BD24-DE1D-4007-A131-2407AC10251B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6E9BD24-DE1D-4007-A131-2407AC10251B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6E9BD24-DE1D-4007-A131-2407AC10251B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6E9BD24-DE1D-4007-A131-2407AC10251B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
