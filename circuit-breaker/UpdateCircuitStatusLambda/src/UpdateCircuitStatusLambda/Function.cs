@@ -39,6 +39,7 @@ namespace UpdateCircuitStatusLambda
                 context.Logger.Log("Inside save construct");
                 try
                 {
+                    // increase 20 seconds to a higher value as needed during test
                     var circuitBreaker = new CircuitBreaker
                     {
                         ServiceName = serviceName,
