@@ -15,7 +15,7 @@ namespace UpdateCircuitStatusLambda
     public class UpdateCircuitStatus
     {
         private static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
-        private DynamoDBContext _dbContext = new DynamoDBContext(client);
+        private DynamoDBContext _dbContext = new DynamoDBContext(client, new DynamoDBContextConfig {ConsistentRead = true});
 
         public async Task<FunctionData> FunctionHandler(FunctionData functionData, ILambdaContext context)
         {
