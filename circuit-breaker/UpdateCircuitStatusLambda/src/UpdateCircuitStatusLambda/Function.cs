@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -15,25 +17,40 @@ namespace UpdateCircuitStatusLambda
         private static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
         private DynamoDBContext _dbContext = new DynamoDBContext(client);
 
-        public FunctionData FunctionHandler(FunctionData functionData, ILambdaContext context)
+        public async Task<FunctionData> FunctionHandler(FunctionData functionData, ILambdaContext context)
         {
             string serviceName = functionData.TargetLambda;
             functionData.CircuitStatus = "OPEN";
+            var currentTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             
-            var currentRecordTask = _dbContext.LoadAsync<CircuitBreaker>(serviceName);
-            var currentRecord = currentRecordTask.Result;
-
-            if (currentRecord == null)
+            //Example of using scan when TTL attribute is not a sort key 
+            var scan1 = new ScanCondition("ServiceName",ScanOperator.Equal,serviceName);
+            var scan2 = new ScanCondition("ExpireTimeStamp",ScanOperator.GreaterThan,currentTimeStamp);
+            var serviceDetails = _dbContext.ScanAsync<CircuitBreaker>(new []{scan1, scan2}).GetRemainingAsync();
+            
+            //Example of using query when TTL attribute is a sort key
+            //var serviceDetails = _dbContext.QueryAsync<CircuitBreaker>(serviceName,QueryOperator.GreaterThan,new object[] {currentTimeStamp}).GetRemainingAsync();
+            
+            context.Logger.Log(serviceDetails.Result.Count.ToString());
+            if (serviceDetails.Result.Count == 0)
             {
-                var circuitBreaker = new CircuitBreaker
+                context.Logger.Log("Inside save construct");
+                try
                 {
-                    ServiceName = serviceName,
-                    CircuitStatus = "OPEN",
-                    ExpireTimeStamp = DateTimeOffset.Now.AddSeconds(20).ToUnixTimeSeconds()
-                };
-                _dbContext.SaveAsync(circuitBreaker);
+                    var circuitBreaker = new CircuitBreaker
+                    {
+                        ServiceName = serviceName,
+                        CircuitStatus = "OPEN",
+                        ExpireTimeStamp = DateTimeOffset.Now.AddSeconds(40).ToUnixTimeSeconds()
+                    };
+                    await _dbContext.SaveAsync(circuitBreaker);
+                }
+                catch (Exception ex)
+                {
+                    context.Logger.Log(ex.Message);
+                }
             }
-
+            
             return functionData;
         }
     }
@@ -46,7 +63,7 @@ namespace UpdateCircuitStatusLambda
         [DynamoDBProperty]
         public string CircuitStatus { get; set; }
         
-        [DynamoDBProperty]
+        [DynamoDBRangeKey]
         public long ExpireTimeStamp { get; set; }
     }
 

@@ -85,3 +85,4 @@ cdk.out/
 
 /lambdas/*
 .aws-sam/
+.vscode/*

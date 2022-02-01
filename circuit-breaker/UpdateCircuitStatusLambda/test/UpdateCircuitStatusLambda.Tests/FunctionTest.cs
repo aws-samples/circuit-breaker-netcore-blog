@@ -21,7 +21,7 @@ namespace UpdateCircuitStatusLambda.Tests
             fnData.TargetLambda = "TestCircuitBreaker";
             var result = function.FunctionHandler(fnData, context);
 
-            Assert.Equal("OPEN", result.CircuitStatus);
+            Assert.Equal("OPEN", result.Result.CircuitStatus);
         }
     }
 }

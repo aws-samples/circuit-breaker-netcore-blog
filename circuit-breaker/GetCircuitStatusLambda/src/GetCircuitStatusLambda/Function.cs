@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -19,11 +20,25 @@ namespace GetCircuitStatusLambda
         public FunctionData FunctionHandler(FunctionData functionData, ILambdaContext context)
         {
             string serviceName = functionData.TargetLambda;
-            var serviceDetails = _dbContext.LoadAsync<CircuitBreaker>(serviceName);
+            var currentTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
+            
+            //Example of using scan when TTL attribute is not a sort key 
+            var scan1 = new ScanCondition("ServiceName",ScanOperator.Equal,serviceName);
+            var scan2 = new ScanCondition("ExpireTimeStamp",ScanOperator.GreaterThan,currentTimeStamp);
+            var serviceDetails = _dbContext.ScanAsync<CircuitBreaker>(new []{scan1, scan2}).GetRemainingAsync();
+            
+            //Example of using query when TTL attribute is a sort key
+            //var serviceDetails = _dbContext.QueryAsync<CircuitBreaker>(serviceName,QueryOperator.GreaterThan,new object[] {currentTimeStamp}).GetRemainingAsync();
 
-            if (serviceDetails.Result != null)
+            foreach (var circuitBreaker in serviceDetails.Result)
             {
-                functionData.CircuitStatus = serviceDetails.Result.CircuitStatus;
+                context.Logger.Log(circuitBreaker.ServiceName);
+                context.Logger.Log(circuitBreaker.ExpireTimeStamp.ToString());
+            }
+
+            if (serviceDetails.Result.Count > 0)
+            {
+                functionData.CircuitStatus = serviceDetails.Result[0].CircuitStatus;
             }
             else
             {
@@ -42,7 +57,7 @@ namespace GetCircuitStatusLambda
         [DynamoDBProperty]
         public string CircuitStatus { get; set; }
         
-        [DynamoDBProperty]
+        [DynamoDBRangeKey]
         public long ExpireTimeStamp { get; set; }
     }
 

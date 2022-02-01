@@ -83,9 +83,13 @@ Resources:
       KeySchema:
         - AttributeName: ServiceName
           KeyType: HASH
+        - AttributeName: ExpireTimeStamp
+          KeyType: RANGE
       AttributeDefinitions:
         - AttributeName: ServiceName
           AttributeType: S
+        - AttributeName: ExpireTimeStamp
+          AttributeType: N
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
