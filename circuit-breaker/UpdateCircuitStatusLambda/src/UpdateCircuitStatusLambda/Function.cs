@@ -41,7 +41,7 @@ namespace UpdateCircuitStatusLambda
                     {
                         ServiceName = serviceName,
                         CircuitStatus = "OPEN",
-                        ExpireTimeStamp = DateTimeOffset.Now.AddSeconds(40).ToUnixTimeSeconds()
+                        ExpireTimeStamp = DateTimeOffset.Now.AddSeconds(20).ToUnixTimeSeconds()
                     };
                     await _dbContext.SaveAsync(circuitBreaker);
                 }
