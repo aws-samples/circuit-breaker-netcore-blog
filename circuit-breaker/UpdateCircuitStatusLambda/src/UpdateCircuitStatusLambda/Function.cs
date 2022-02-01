@@ -24,12 +24,14 @@ namespace UpdateCircuitStatusLambda
             var currentTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             
             //Example of using scan when TTL attribute is not a sort key 
-            var scan1 = new ScanCondition("ServiceName",ScanOperator.Equal,serviceName);
-            var scan2 = new ScanCondition("ExpireTimeStamp",ScanOperator.GreaterThan,currentTimeStamp);
-            var serviceDetails = _dbContext.ScanAsync<CircuitBreaker>(new []{scan1, scan2}).GetRemainingAsync();
+            // var scan1 = new ScanCondition("ServiceName",ScanOperator.Equal,serviceName);
+            // var scan2 = new ScanCondition("ExpireTimeStamp",ScanOperator.GreaterThan,currentTimeStamp);
+            // var serviceDetails = _dbContext.ScanAsync<CircuitBreaker>(new []{scan1, scan2}).GetRemainingAsync();
             
             //Example of using query when TTL attribute is a sort key
-            //var serviceDetails = _dbContext.QueryAsync<CircuitBreaker>(serviceName,QueryOperator.GreaterThan,new object[] {currentTimeStamp}).GetRemainingAsync();
+            var serviceDetails = _dbContext.QueryAsync<CircuitBreaker>(serviceName, QueryOperator.GreaterThan,
+                new List<object>
+                    {currentTimeStamp}).GetRemainingAsync();
             
             context.Logger.Log(serviceDetails.Result.Count.ToString());
             if (serviceDetails.Result.Count == 0)
