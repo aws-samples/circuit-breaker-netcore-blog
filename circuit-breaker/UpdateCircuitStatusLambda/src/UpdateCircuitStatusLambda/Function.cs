@@ -14,13 +14,15 @@ namespace UpdateCircuitStatusLambda
 {
     public class UpdateCircuitStatus
     {
+        private const string CIRCUIT_STATUS = "OPEN";
+        private const int EXPIRE_SECONDS = 20;
         private static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
         private DynamoDBContext _dbContext = new DynamoDBContext(client, new DynamoDBContextConfig {ConsistentRead = true});
 
         public async Task<FunctionData> FunctionHandler(FunctionData functionData, ILambdaContext context)
         {
             string serviceName = functionData.TargetLambda;
-            functionData.CircuitStatus = "OPEN";
+            functionData.CircuitStatus = CIRCUIT_STATUS;
             var currentTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             
             //Example of using scan when TTL attribute is not a sort key 
@@ -43,8 +45,8 @@ namespace UpdateCircuitStatusLambda
                     var circuitBreaker = new CircuitBreaker
                     {
                         ServiceName = serviceName,
-                        CircuitStatus = "OPEN",
-                        ExpireTimeStamp = DateTimeOffset.Now.AddSeconds(20).ToUnixTimeSeconds()
+                        CircuitStatus = CIRCUIT_STATUS,
+                        ExpireTimeStamp = DateTimeOffset.Now.AddSeconds(EXPIRE_SECONDS).ToUnixTimeSeconds()
                     };
                     await _dbContext.SaveAsync(circuitBreaker);
                 }
