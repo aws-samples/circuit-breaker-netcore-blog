@@ -20,10 +20,8 @@ namespace CdkCircuitBreaker
             });
             
             iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("AmazonDynamoDBFullAccess"));
-            //iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("SecretsManagerReadWrite"));
             iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("CloudWatchLogsFullAccess"));
             iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("AWSXrayFullAccess"));
-            //iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromManagedPolicyArn(this,"AWSLambdaVPCAccessExecutionRole","arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"));
             iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("AWSStepFunctionsFullAccess"));
 
             var iamStepFunctionRole = new Role(this,"step_functions_basic_execution", new RoleProps
@@ -47,8 +45,15 @@ namespace CdkCircuitBreaker
                     Name = "ServiceName",
                     Type = AttributeType.STRING
                 },
+                SortKey = new Attribute
+                {
+                  Name  = "ExpireTimeStamp",
+                  Type = AttributeType.NUMBER
+                },
                 TimeToLiveAttribute = "ExpireTimeStamp",
-                RemovalPolicy = RemovalPolicy.DESTROY
+                RemovalPolicy = RemovalPolicy.DESTROY,
+                ReadCapacity = 5,
+                WriteCapacity = 5
             });
             
             #endregion
