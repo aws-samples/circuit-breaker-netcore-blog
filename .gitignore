@@ -86,4 +86,3 @@ cdk.out/
 /lambdas/*
 .aws-sam/
 .vscode/*
-cdk-circuit-breaker/lambdas/*
