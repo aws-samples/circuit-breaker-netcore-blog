@@ -36,7 +36,7 @@ DynamoDB's TTL feature is used to delete the expired items from the CircuitBreak
 -	An AWS account
 -	An AWS user with AdministratorAccess (see the instructions on the AWS Identity and Access Management (IAM) console)
 -	Access to the following AWS services: AWS Lambda, AWS Step Functions, and Amazon DynamoDB
--	.NET Core 3.1 SDK installed
+-	.NET 6.0 SDK installed
 -	JetBrains Rider or Microsoft Visual Studio 2017 or later (or Visual Studio Code)
 
 
@@ -76,7 +76,7 @@ The Lambda functions in the circuit-breaker directory must be packaged and copie
 ```shell
 $ cd circuit-breaker-src/GetCircuitStatusLambda/src/GetCircuitStatusLambda
 $ dotnet lambda package
-$ cp bin/Release/netcoreapp3.1/GetCircuitStatusLambda.zip ../../../../cdk-circuit-breaker/lambdas
+$ cp bin/Release/net6.0/GetCircuitStatusLambda.zip ../../../../cdk-circuit-breaker/lambdas
 ```
 
 Repeat the same commands for all the Lambda functions in the circuit-breaker-src directory.
