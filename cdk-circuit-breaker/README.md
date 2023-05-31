@@ -5,7 +5,7 @@
 -	An AWS account
 -	An AWS user with AdministratorAccess (see the instructions on the AWS Identity and Access Management (IAM) console)
 -	Access to the following AWS services: AWS Lambda, AWS Step Functions, and Amazon DynamoDB
--	.NET Core 3.1 SDK installed
+-	.NET 6 SDK installed
 -	JetBrains Rider or Microsoft Visual Studio 2017 or later (or Visual Studio Code)
 
 ## Step 1: Download the application

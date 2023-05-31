@@ -5,6 +5,7 @@ using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.StepFunctions;
 using Amazon.CDK.AWS.StepFunctions.Tasks;
+using Constructs;
 
 namespace CdkCircuitBreaker
 {
@@ -63,7 +64,7 @@ namespace CdkCircuitBreaker
             var getCircuitStatusLambda = new Function(this,"GetCircuitStatus", new FunctionProps
             {
                 FunctionName = "GetCircuitStatus",
-                Runtime = Runtime.DOTNET_CORE_3_1,
+                Runtime = Runtime.DOTNET_6,
                 Handler = "GetCircuitStatusLambda::GetCircuitStatusLambda.GetCircuitStatus::FunctionHandler",
                 Role = iamLambdaRole,
                 Code = Code.FromAsset("lambdas/GetCircuitStatusLambda.zip"),
@@ -73,7 +74,7 @@ namespace CdkCircuitBreaker
             var updateCircuitStatusLambda = new Function(this,"UpdateCircuitStatus", new FunctionProps
             {
                 FunctionName = "UpdateCircuitStatus",
-                Runtime = Runtime.DOTNET_CORE_3_1,
+                Runtime = Runtime.DOTNET_6,
                 Handler = "UpdateCircuitStatusLambda::UpdateCircuitStatusLambda.UpdateCircuitStatus::FunctionHandler",
                 Role = iamLambdaRole,
                 Code = Code.FromAsset("lambdas/UpdateCircuitStatusLambda.zip"),
