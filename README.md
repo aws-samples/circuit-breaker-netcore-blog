@@ -1,3 +1,5 @@
+> “**Legal Disclaimer:** The sample code; software libraries; command line tools; proofs of concept; templates; or other related technology (including any of the foregoing that are provided by our personnel) is provided to you as AWS Content under the AWS Customer Agreement, or the relevant written agreement between you and AWS (whichever applies). You should not use this AWS Content in your production accounts, or on production or other critical data. You are responsible for testing, securing, and optimizing the AWS Content, such as sample code, as appropriate for production grade use based on your specific quality control practices and standards. Deploying AWS Content may incur AWS charges for creating or using AWS chargeable resources, such as running Amazon EC2 instances or using Amazon S3 storage.”
+
 ## Implementing the circuit breaker pattern using AWS Step Functions and Amazon DynamoDB
 
 Blog reference:- [https://aws.amazon.com/blogs/compute/using-the-circuit-breaker-pattern-with-aws-step-functions-and-amazon-dynamodb/](https://aws.amazon.com/blogs/compute/using-the-circuit-breaker-pattern-with-aws-step-functions-and-amazon-dynamodb/) 
@@ -38,6 +40,8 @@ DynamoDB's TTL feature is used to delete the expired items from the CircuitBreak
 -	Access to the following AWS services: AWS Lambda, AWS Step Functions, and Amazon DynamoDB
 -	.NET 6.0 SDK installed
 -	JetBrains Rider or Microsoft Visual Studio 2017 or later (or Visual Studio Code)
+-   To work with the AWS CDK, you must have an AWS account and credentials and have installed Node.js and the AWS CDK Toolkit
+
 
 
 ## Deploy using SAM
@@ -46,6 +50,7 @@ DynamoDB's TTL feature is used to delete the expired items from the CircuitBreak
 
 ```shell
 $ git clone https://github.com/aws-samples/circuit-breaker-netcore-blog.git
+$ cd circuit-breaker-netcore-blog
 ```
 
 ### Step 2: Build the template
@@ -61,20 +66,37 @@ $ sam build
 $ sam deploy --guided
 ```
 
+### Step 4: Delete the SAM application when done
+
+Note:  Evaluation of the Circuit Breaker Dashboard requires the application to be deployed.
+
+```shell
+$ sam delete
+```
+
 ## Deploy using CDK
 
 ### Step 1: Download the application
 
 ```shell
 $ git clone https://github.com/aws-samples/circuit-breaker-netcore-blog.git
+$ cd circuit-breaker-netcore-blog
 ```
 
 ### Step 2: Create packages of lambda functions
 
-The Lambda functions in the circuit-breaker directory must be packaged and copied to the cdk-circuit-breaker\lambdas directory before deployment. Run these commands to process the GetCircuitStatusLambda function:
+The Lambda functions in the circuit-breaker directory must be packaged and copied to the cdk-circuit-breaker\lambdas directory before deployment. 
+
+First create the lambdas subdirectory where the excecutable code zip files will be stored for the build.
 
 ```shell
-$ cd circuit-breaker-src/GetCircuitStatusLambda/src/GetCircuitStatusLambda
+$ mkdir cdk-circuit-breaker/lambdas
+```
+
+Run these commands to process the GetCircuitStatusLambda function:
+
+```shell
+$ cd circuit-breaker/GetCircuitStatusLambda/src/GetCircuitStatusLambda
 $ dotnet lambda package
 $ cp bin/Release/net6.0/GetCircuitStatusLambda.zip ../../../../cdk-circuit-breaker/lambdas
 ```
@@ -91,4 +113,43 @@ $ cd cdk-circuit-breaker/src/CdkCircuitBreaker && dotnet build
 $ cd ../..
 $ cdk synth
 $ cdk deploy
+```
+
+### Step 4: Delete the CDK application when done
+
+Note:  Evaluation of the Circuit Breaker Dashboard requires the application to be deployed.
+
+```shell
+$ cdk destroy
+```
+
+## Deploy the CloudWatch Dashboard
+
+CircuitBreaker-Dashboard is a custom CloudWatch dashboard that provides operational observability for Circuit Breaker.  Metrics used are provided by the GetCircuitStatus Lambda function via Embedded Metric Format (EMF) records in the function's CloudWatch Logs.
+
+### Prerequisites
+You must have the SAM or CDK version of the Circuit Breaker application installed to install and use the dashboard.  The instructions assume you have already downloaded the code as per Step 1 in the directions for installing the application using SAM or CDK.
+
+### Step 1: Install, Build and Deploy the dashboard
+
+```shell
+cd <top-level directory for Circuit Breaker Dashboard cdk project>
+npm outdated
+npm update --force
+npm install --force
+npm install -g typescript aws-cdk --force
+```
+
+Note: Use the name of the Circuit-Breaker CloudFormation Stack for the stack_name.
+```shell
+cdk deploy -c stack_name=<name of circuit-breaker stack>
+```
+
+The custom dashboard can be viewed in the AWS console under the CloudWatch service.  Click on "Dashboards" in the menu on the left and then select CircuitBreaker-Dashboard.  This dashboard can be customized to have separate Graph Widgets for each of your Circuit Breaker protected services.  These would replace the lower widgets that are provided for TestCircuitBreakerFunction and HelloWorldFunction.  The code to modify is in lib/circuitbreaker-dashboard-stack.ts and lib/helper/cloudformation-parser.ts.
+
+The Graph Widgets at the top of the dashboard provide an aggregate  view for all services protected by the Circuit Breaker workflow.
+
+### Step 2: To delete the Dashboard stack
+```shell
+cdk destroy -c stack_name=<name of circuit-breaker stack>
 ```

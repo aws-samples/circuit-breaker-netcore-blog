@@ -2,68 +2,157 @@
   "StartAt": "Get Circuit Status",
   "States": {
     "Get Circuit Status": {
-      "Next": "Is Circuit Closed",
+      "Next": "Is Circuit Open?",
       "Type": "Task",
       "Comment": "Get Circuit Status",
-      "Resource": "${GetCircuitStatusFunctionArn}"
-    },
-    "Is Circuit Closed": {
-      "Type": "Choice",
-      "Choices": [
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "ResultSelector": {
+        "CircuitStatus.$": "$.Payload.CircuitControl.CircuitStatus",
+        "HiResTimeStamp.$": "$.Payload.CircuitControl.HiResTimeStamp",
+        "Count.$": "$.Payload.CircuitControl.Count",
+        "MaxAttempts.$": "$.Payload.CircuitControl.MaxAttempts",
+        "MaxConsecutive.$": "$.Payload.CircuitControl.MaxConsecutive",
+        "MaxHalfRate.$": "$.Payload.CircuitControl.MaxHalfRate",
+        "HalfIntervalSeconds.$": "$.Payload.CircuitControl.HalfIntervalSeconds",
+        "InactivityResetSeconds.$": "$.Payload.CircuitControl.InactivityResetSeconds",
+        "TimeoutSeconds.$": "$.Payload.CircuitControl.TimeoutSeconds"
+      },
+      "ResultPath": "$.CircuitControl",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${GetCircuitStatusFunctionArn}"
+      },
+      "Retry": [
         {
-          "Variable": "$.CircuitStatus",
-          "StringEquals": "OPEN",
-          "Next": "Circuit Open"
-        },
-        {
-          "Variable": "$.CircuitStatus",
-          "StringEquals": "",
-          "Next": "Execute Lambda"
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
         }
       ]
     },
-    "Circuit Open": {
-      "Type": "Fail"
-    },
-    "Update Circuit Status": {
-      "Next": "Circuit Open",
-      "Type": "Task",
-      "Comment": "Update Circuit Status",
-      "Resource": "${UpdateCircuitStatusFunctionArn}"
-    },
-    "Execute Lambda": {
-      "Next": "Circuit Closed",
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName.$": "$.TargetLambda"
-      },
-      "Comment": "Task to execute lambda. This will set circuit status to OPEN if the execution fails for three times or the task times out",
-      "TimeoutSeconds": 12,
-      "Retry": [
+    "Is Circuit Open?": {
+      "Type": "Choice",
+      "Choices": [
         {
-          "BackoffRate": 1.5,
-          "MaxAttempts": 3,
-          "IntervalSeconds": 2,
-          "ErrorEquals": [
-            "States.TaskFailed",
-            "States.Timeout"
-          ]
+          "Variable": "$.CircuitControl.CircuitStatus",
+          "StringEquals": "OPEN",
+          "Next": "Fail"
         }
       ],
+      "Default": "Execute Lambda"
+    },
+    "Fail": {
+      "Type": "Fail"
+    },
+    "Record Invoke Failure": {
+      "Next": "Try Limit Reached?",
+      "Type": "Task",
+      "Comment": "Update CallResult",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "ResultSelector": {
+        "CircuitStatus.$": "$.Payload.CircuitControl.CircuitStatus",
+        "HiResTimeStamp.$": "$.Payload.CircuitControl.HiResTimeStamp",
+        "Count.$": "$.Payload.CircuitControl.Count",
+        "MaxAttempts.$": "$.Payload.CircuitControl.MaxAttempts",
+        "MaxConsecutive.$": "$.Payload.CircuitControl.MaxConsecutive",
+        "MaxHalfRate.$": "$.Payload.CircuitControl.MaxHalfRate",
+        "HalfIntervalSeconds.$": "$.Payload.CircuitControl.HalfIntervalSeconds",
+        "InactivityResetSeconds.$": "$.Payload.CircuitControl.InactivityResetSeconds",
+        "TimeoutSeconds.$": "$.Payload.CircuitControl.TimeoutSeconds"
+      },
+      "ResultPath": "$.CircuitControl",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${UpdateCircuitStatusFunctionArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ]
+    },    
+    "Try Limit Reached?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Or": [
+            {
+              "Variable": "$.CircuitControl.Count",
+              "IsPresent": false
+            },
+            {
+              "Variable": "$.CircuitControl.Count",
+              "NumericGreaterThanEqualsPath": "$.CircuitControl.MaxAttempts"
+            }
+          ],
+          "Next": "Fail"
+        }
+      ],
+      "Default": "Get Circuit Status"
+    },
+    "Execute Lambda": {
+      "Next": "Record Invoke Success",
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "ResultPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName.$": "$.TargetLambda"
+      },
+      "Comment": "Task to execute lambda.",
+      "TimeoutSecondsPath": "$.CircuitControl.TimeoutSeconds",
       "Catch": [
         {
           "ErrorEquals": [
             "States.TaskFailed",
             "States.Timeout"
           ],
-          "Next": "Update Circuit Status",
+          "Next": "Record Invoke Failure",
           "ResultPath": "$.taskresult"
         }
       ]
     },
-    "Circuit Closed": {
-      "Type": "Succeed"
+    "Record Invoke Success": {
+      "Next": "Success",
+      "Type": "Task",
+      "Comment": "Update CallResult",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "ResultPath": null,
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${UpdateCircuitStatusFunctionArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Success": {
+      "Type": "Succeed",
+      "OutputPath": "$.Payload"
     }
   }
 }

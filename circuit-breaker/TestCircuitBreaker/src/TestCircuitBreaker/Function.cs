@@ -12,17 +12,24 @@ namespace TestCircuitBreaker
 {
     public class Function
     {
-        public FunctionData FunctionHandler(FunctionData fnData, ILambdaContext context)
+        public FunctionData FunctionHandler(FunctionData functionData, ILambdaContext context)
         {
-            Thread.Sleep(15000);
-            return fnData;
+            if (functionData.PassTest == 0)
+                Thread.Sleep(15000);
+            return functionData;
         }
     }
     
-    public class FunctionData
+       public class FunctionData
     {
-        public string TargetLambda { get; set; }
-        public string CircuitStatus { get; set; }
+        public long PassTest { get; set; }
+        public TaskResultFields taskresult { get; set; }
         public string JsonPayload { get; set; }
+
     }
+    public class TaskResultFields
+    {
+        public string Error { get; set; }
+        public string Cause { get; set; }
+    }        
 }

@@ -7,10 +7,5 @@
   ],
   "profile": "",
   "region": "",
-  "configuration": "Release",
-  "framework": "net6.0",
-  "function-runtime": "dotnet6",
-  "function-memory-size": 256,
-  "function-timeout": 30,
-  "function-handler": "GetCircuitStatusLambda::GetCircuitStatusLambda.Function::FunctionHandler"
+  "configuration": "Release"
 }

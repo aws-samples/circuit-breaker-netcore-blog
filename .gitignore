@@ -82,6 +82,7 @@ fabric.properties
 **/*.sln.DotSettings.user
 
 cdk.out/
+.cdk.staging
 
 /lambdas/*
 .aws-sam/
