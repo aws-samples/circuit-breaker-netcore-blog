@@ -1,5 +1,5 @@
 {
-  "app": "dotnet run -p src/CdkCircuitBreaker/CdkCircuitBreaker.csproj",
+  "app": "dotnet run --project src/CdkCircuitBreaker/CdkCircuitBreaker.csproj",
   "context": {
     "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
     "aws-cdk:enableDiffNoFail": true,

@@ -1,22 +1,69 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Sample SAM Template for circuit breaker pattern
+  SAM Template for circuit breaker pattern
 
 Resources:
+
+  CircuitBreakerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: 'SamCircuitBreaker-CircuitBreakerLogGroup'
+
   CircuitBreakerStateMachine:
     Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
     Properties:
+      Type: STANDARD  # STANDARD or EXPRESS
       DefinitionUri: statemachine/circuitbreaker.asl.json
       DefinitionSubstitutions:
         GetCircuitStatusFunctionArn: !GetAtt GetCircuitStatusFunction.Arn
         UpdateCircuitStatusFunctionArn: !GetAtt UpdateCircuitStatusFunction.Arn
-        DDBPutItem: !Sub arn:${AWS::Partition}:states:::dynamodb:putItem
-        DDBTable: !Ref CircuitBreakerTable
-      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
-        - AWSLambdaRole
-        - DynamoDBWritePolicy:
-            TableName: !Ref CircuitBreakerTable
+      Role: !GetAtt CircuitBreakerStateMachineRole.Arn
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt CircuitBreakerLogGroup.Arn
+        IncludeExecutionData: true
+        Level: 'ALL'
+      Tracing:
+        Enabled: true
+
+  #Execution Role for StepFunctions
+  CircuitBreakerStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:*'
+                  - 'logs:*'
+                Resource: '*'
+        - PolicyName: LambdaInvoke
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: 
+                  - !GetAtt GetCircuitStatusFunction.Arn
+                  - !GetAtt UpdateCircuitStatusFunction.Arn
+                  # Include below the Lambda Function ARNs that are allowed as a TargetLambda                  
+                  - !GetAtt TestCircuitBreakerFunction.Arn
+                  - !GetAtt HelloWorldFunction.Arn
 
   GetCircuitStatusFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -24,14 +71,15 @@ Resources:
       CodeUri: ./GetCircuitStatusLambda/src/GetCircuitStatusLambda/
       Handler: GetCircuitStatusLambda::GetCircuitStatusLambda.GetCircuitStatus::FunctionHandler
       Runtime: dotnet6
+      Architectures:
+        - x86_64
       MemorySize: 256
       Timeout: 30
       Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess
-
+        - DynamoDBCrudPolicy:
+            TableName:
+             !Ref CircuitBreakerTable
+      Tracing: Active
 
   UpdateCircuitStatusFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -39,13 +87,15 @@ Resources:
       CodeUri: ./UpdateCircuitStatusLambda/src/UpdateCircuitStatusLambda/
       Handler: UpdateCircuitStatusLambda::UpdateCircuitStatusLambda.UpdateCircuitStatus::FunctionHandler
       Runtime: dotnet6
+      Architectures:
+        - x86_64
       MemorySize: 256
       Timeout: 30
       Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess      
+        - DynamoDBCrudPolicy:
+            TableName:
+             !Ref CircuitBreakerTable
+      Tracing: Active
 
   TestCircuitBreakerFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -53,13 +103,11 @@ Resources:
       CodeUri: ./TestCircuitBreaker/src/TestCircuitBreaker/
       Handler: TestCircuitBreaker::TestCircuitBreaker.Function::FunctionHandler
       Runtime: dotnet6
+      Architectures:
+        - x86_64
       MemorySize: 256
       Timeout: 30
-      Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess
+      Tracing: Active
   
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -67,29 +115,26 @@ Resources:
       CodeUri: ./HelloWorld/src/HelloWorld/
       Handler: HelloWorld::HelloWorld.Function::FunctionHandler
       Runtime: dotnet6
+      Architectures:
+        - x86_64
       MemorySize: 256
       Timeout: 30
-      Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess
-
+      Tracing: Active
 
   CircuitBreakerTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: CircuitBreaker
-      KeySchema:
-        - AttributeName: ServiceName
-          KeyType: HASH
-        - AttributeName: ExpireTimeStamp
-          KeyType: RANGE
       AttributeDefinitions:
         - AttributeName: ServiceName
           AttributeType: S
-        - AttributeName: ExpireTimeStamp
+        - AttributeName: HiResTimeStamp
           AttributeType: N
+      KeySchema:
+        - AttributeName: ServiceName
+          KeyType: HASH
+        - AttributeName: HiResTimeStamp
+          KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5

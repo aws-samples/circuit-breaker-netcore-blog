@@ -14,14 +14,24 @@ namespace HelloWorld
         public FunctionData FunctionHandler(FunctionData fnData, ILambdaContext context)
         {
             context.Logger.Log("Hello World from successful circuit");
+
+            if (fnData.taskresult is null)
+                fnData.taskresult = new TaskResultFields();
+
+            fnData.taskresult.Error = "";
             return fnData;
         }
     }
     
-    public class FunctionData
+   public class FunctionData
     {
-        public string TargetLambda { get; set; }
-        public string CircuitStatus { get; set; }
+        public TaskResultFields taskresult { get; set; }
         public string JsonPayload { get; set; }
+
     }
+    public class TaskResultFields
+    {
+        public string Error { get; set; }
+        public string Cause { get; set; }
+    }        
 }
