@@ -65,10 +65,12 @@ For this walkthrough, you need:
 
 - An AWS account and an AWS user with AdministratorAccess (see the instructions on the AWS Identity and Access Management (IAM) console)
 - Access to the following AWS services: AWS Lambda, AWS Step Functions, and Amazon DynamoDB.
-
-AWS SAM CLI using the instructions here.
-- NET Core 3.1 SDK installed
+- NET Core 6.0 SDK installed
 - JetBrains Rider or Microsoft Visual Studio 2017 or later (or Visual Studio Code)
+
+Install the AWS SAM CLI using the instructions here:
+
+[Installing SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 
 ## Setting up the environment
 
@@ -179,5 +181,60 @@ $ cdk deploy
 ```
 
 ![ALT](./asset/Cloudformation.png)
+
+## Running the service through the circuit breaker
+
+To provide circuit breaker capabilities to the Lambda microservice, you must send the name or function ARN of the Lambda function to the Step Functions workflow:
+
+## JSON
+```
+{
+  "TargetLambda": "<Name or ARN of the Lambda function>"
+}
+```
+
+## Successful run
+
+To simulate a successful run, use the HelloWorld Lambda function provided by passing the name or ARN of the Lambda function the stack has created. Your input appears as follows:
+
+## JSON
+```
+{
+  "TargetLambda": "circuit-breaker-stack-HelloWorldFunction-pP1HNkJGugQz"
+}
+```
+
+During the successful run, the Get Circuit Status step checks the circuit status against the DynamoDB table. Suppose that the circuit is CLOSED, which is indicated by zero records for that service in the DynamoDB table. In that case, the Execute Lambda step runs the Lambda function and exits the workflow successfully.
+
+![ALT](./asset/circuitclosed.png)
+
+## Service timeout
+
+To simulate a timeout, use the TestCircuitBreaker Lambda function by passing the name or ARN of the Lambda function the stack has created. Your input appears as:
+
+## JSON
+```
+{
+  "TargetLambda": "circuit-breaker-stack-TestCircuitBreakerFunction-mKeyyJq4BjQ7"
+}
+```
+
+Again, the circuit status is checked against the DynamoDB table by the Get Circuit Status step in the workflow. The circuit is CLOSED during the first pass, and the Execute Lambda step runs the Lambda function and timeout.
+
+The workflow retries based on the retry count and the exponential backoff values, and finally returns a timeout error. It runs the Update Circuit Status step where a record is inserted in the DynamoDB table for that service, with a predefined time-to-live value specified by TTL attribute ExpireTimeStamp.
+
+![ALT](./asset/Red.png)
+
+The item in the DynamoDB table expires after 20 seconds, and the workflow retries the service again. This time, the workflow retries with exponential backoffs, and if it succeeds, the workflow exits successfully.
+
+## Cleaning up
+
+To avoid incurring additional charges, clean up all the created resources. Run the following command from a terminal window. This command deletes the created resources that are part of this example.
+
+```bash
+sam delete --stack-name circuit-breaker-stack --region <region name>
+```
+
+This lab showed how to implement the circuit breaker pattern using Step Functions, Lambda, DynamoDB and .Net Core 6.0.  This pattern can help prevent system degradation in service failures or timeouts.
 
 
