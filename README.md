@@ -1,8 +1,18 @@
 ## Implementing the circuit breaker pattern using AWS Step Functions and Amazon DynamoDB
 
+The circuit breaker pattern can prevent a caller service from retrying a call to another service (callee) when the call has previously caused repeated timeouts or failures. The pattern is also used to detect when the callee service is functional again.
+
+Use this pattern when:
+
+* The caller service makes a call that is most likely going to fail.
+* A high latency exhibited by the callee service (for example, when database connections are slow) causes timeouts to the callee service.
+* The caller service makes a synchronous call, but the callee service isn't available or exhibits high latency.
+
+To learn more about the Circuit Breaker pattern and other patterns, please refer to the Amazon Prescriptive Guidance page on [Cloud Design Patterns, architectures, and implementations](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/circuit-breaker.html)
+
 ## Architecture Overview
 
-This example uses the AWS Step Functions, AWS Lambda, and Amazon DynamoDB to implement the circuit breaker pattern:
+This example uses the [AWS Step Functions](https://aws.amazon.com/step-functions/), [AWS Lambda](https://aws.amazon.com/lambda/), and [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) to implement the circuit breaker pattern:
 
 ![ALT](./asset/Architecture.png)
 
@@ -24,17 +34,7 @@ I enter the item with an associated ExpiryTimeStamp value to ensure eventual con
 
 Expired items are deleted from the CircuitBreaker table using DynamoDB’s time to live (TTL) feature. DynamoDB’s time to live (TTL) allows you to define a per-item timestamp to determine when an item is no longer needed. I have defined the ExpiryTimeStamp as the TTL attribute.
 
-At some point after the date and time of the ExpiryTimeStamp, typically within 48 hours, DynamoDB deletes the item from the CircuitBreaker table without consuming write throughput. DynamoDB determines the deletion time and there is no guarantee about when the deletion will occur.
-
-Blog reference:- [https://aws.amazon.com/blogs/compute/using-the-circuit-breaker-pattern-with-aws-step-functions-and-amazon-dynamodb/](https://aws.amazon.com/blogs/compute/using-the-circuit-breaker-pattern-with-aws-step-functions-and-amazon-dynamodb/) 
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This library is licensed under the MIT-0 License. See the LICENSE file.
+At some point after the date and time of the ExpiryTimeStamp, [typically within 48 hours](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/howitworks-ttl.html), DynamoDB deletes the item from the CircuitBreaker table without consuming write throughput. DynamoDB determines the deletion time and there is no guarantee about when the deletion will occur.
 
 ## Description
 
@@ -63,126 +63,103 @@ DynamoDB's TTL feature is used to delete the expired items from the CircuitBreak
 
 For this walkthrough, you need:
 
-- An AWS account and an AWS user with AdministratorAccess (see the instructions on the AWS Identity and Access Management (IAM) console)
-- Access to the following AWS services: AWS Lambda, AWS Step Functions, and Amazon DynamoDB.
-- NET Core 6.0 SDK installed
-- JetBrains Rider or Microsoft Visual Studio 2017 or later (or Visual Studio Code)
+- An [AWS](https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Fportal.aws.amazon.com%2Fbilling%2Fsignup%2Fresume&client_id=signup) account and an AWS user with AdministratorAccess (see the [instructions](https://console.aws.amazon.com/iam/home#/roles%24new?step=review&commonUseCase=EC2%2BEC2&selectedUseCase=EC2&policies=arn:aws:iam::aws:policy%2FAdministratorAccess) on the [AWS Identity and Access Management](http://aws.amazon.com/iam) (IAM) console)
+- Access to the following AWS services: [AWS Lambda](https://aws.amazon.com/lambda/), [AWS Step Functions](https://aws.amazon.com/step-functions/), and [Amazon DynamoDB](https://aws.amazon.com/dynamodb/).
+- AWS SAM CLI using the instructions [here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
+- .NET 6.0 SDK installed
+- [JetBrains Rider](https://www.jetbrains.com/rider/) or [Microsoft Visual Studio 2017](https://visualstudio.microsoft.com/) or later (or [Visual Studio Code](https://code.visualstudio.com/))
 
-Install the AWS SAM CLI using the instructions here:
-
-[Installing SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 
 ## Setting up the environment
 
-Use the .NET Core 3.1 code in the GitHub repository and the AWS SAM template to create the AWS resources for this walkthrough. These include IAM roles, DynamoDB table, the Step Functions workflow, and Lambda functions.
+Use the .NET 6.0 code in the GitHub repository and the AWS SAM template to create the AWS resources for this walkthrough. These include IAM roles, DynamoDB table, the Step Functions workflow, and Lambda functions.
 
-You need an AWS access key ID and secret access key to configure the AWS Command Line Interface (AWS CLI). To learn more about configuring the AWS CLI, follow these instructions.
+You need an AWS access key ID and secret access key to configure the AWS Command Line Interface (AWS CLI). To learn more about configuring the AWS CLI, follow these [instructions](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html).
+
+
+## Method 1: Deploy using Serverless Application Model (AWS SAM)
 
 ### Step 1: Download the application
 
 ```bash
-$ git clone https://github.com/aws-samples/circuit-breaker-netcore-blog.git
+git clone https://github.com/aws-samples/circuit-breaker-netcore-blog.git
 ```
 
-After cloning, this is the folder structure:
+After cloning, folder structure looks as below:
 
 ![ALT](./asset/files.png)
 
-## Deploy using Serverless Application Model (AWS SAM)
 
-The AWS Serverless Application Model (AWS SAM) CLI provides developers with a local tool for managing serverless applications on AWS.
+The [AWS Serverless Application Model (AWS SAM) CLI](https://aws.amazon.com/serverless/sam/) provides developers with a local tool for managing serverless applications on AWS.
 
-1. The sam build command processes your AWS SAM template file, application code, and applicable language-specific files and dependencies. The command copies build artifacts in the format and location expected for subsequent steps in your workflow. Run these commands to process the template file:
+The sam build command processes your AWS SAM template file, application code, and applicable language-specific files and dependencies. The command copies build artifacts in the format and location expected for subsequent steps in your workflow. Run these commands to process the template file:
 
 ### Step 2: Build the template
 
 ```bash
-$ cd circuit-breaker
-```
-
-```bash
-$ sam build
+cd circuit-breaker
+sam build
 ```
 
 ### Step 3: Deploy the application
 
 ```bash
-$ sam deploy --guided
+sam deploy --guided
 ```
 
 ![ALT](./asset/sam.png)
 
-## Deploy using CDK
+You can also view the output in [AWS Cloudformation](https://aws.amazon.com/cloudformation/) page.
+
+![ALT](./asset/Cloudformation.png)
+
+
+## Method 2: Deploy using CDK
 
 ### Step 1: Download the application
 
 ```bash
-$ git clone https://github.com/aws-samples/circuit-breaker-netcore-blog.git
+git clone https://github.com/aws-samples/circuit-breaker-netcore-blog.git
 ```
+
+The Step Functions workflow provides the circuit-breaker function. Refer to the circuitbreaker.asl.json file in the statemachine folder for the state machine definition in the Amazon States Language (ASL).
 
 ### Step 2: Create packages of lambda functions
 
-The Lambda functions in the circuit-breaker directory must be packaged and copied to the cdk-circuit-breaker/lambdas directory before deployment. Run these commands to process the GetCircuitStatusLambda function
+The Lambda functions in the circuit-breaker directory must be packaged and copied to the cdk-circuit-breaker/lambdas directory before deployment. Create the lambdas folder under the cdk-circuit-breaker directory. 
 
 ```bash
 cd cdk-circuit-breaker
-```
-
-```bash
 mkdir lambdas
+cd ../ciruit-breaker
 ```
 
-Now that we have created the lambdas folder, we will navigate to the circuit-breaker directory.  Once there we want to do a ls command to view the files inside the directory
-
-GetCircuitStatusLambda		
-TestCircuitBreaker		
-statemachine
-HelloWorld			
-UpdateCircuitStatusLambda	
-template.yaml
-
-We then run these commands to package the first function: In this case "GetCircuitStatusLambda"
+Run these commands to package the GetCircuitStatusLambda function and copy to the lambdas folder. 
 
 ```bash
 cd circuit-breaker/GetCiruitStatus/src/GetCircuitStatusLambda
+dotnet lambda package
+cp bin/Release/net6.0/GetCircuitStatusLambda.zip ../../../../cdk-circuit-breaker/lambdas
+cd ../../..
 ```
 
-```bash
-$ dotnet lambda package
-```
+Repeat the above for all the lambda functions in the circuit-breaker directory
 
-When we the function is packaged there will be a zip. and this is what you copy over to the cdk-circuit-breaker/lambdas directory.
-
-```bash
-$ cp /xxxx/xxxx/circuit-breaker-netcore-blog/circuit-breaker/GetCircuitStatusLambda/src/GetCircuitStatusLambda/bin/Release/net6.0/GetCircuitStatusLambda.zip /xxxx/xxxx/circuit-breaker-netcore-blog/cdk-circuit-breaker/lambdas
-```
-
-Repeat the same commands until all the Lambda functions in the cdk-circuit-breaker/lambdas directory.
 
 ### Step 3: Deploy the CDK code
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app. It uses the [.NET Core CLI](https://docs.microsoft.com/dotnet/articles/core/) to compile and execute your project. Build and deploy the CDK code using the commands below.
+The `cdk.json` file tells the CDK Toolkit how to execute your app. It uses the [.NET CLI](https://docs.microsoft.com/dotnet/articles/core/) to compile and execute your project. Build and deploy the CDK code using the commands below.
 
 ```bash
-$ npm install -g aws-cdk
+npm install -g aws-cdk
+cd cdk-circuit-breaker/src/CdkCircuitBreaker && dotnet build
+cd ../..
+cdk synth
+cdk deploy
 ```
 
-```bash
-$ cd cdk-circuit-breaker/src/CdkCircuitBreaker && dotnet build
-```
 
-```bash
-$ cd ../..
-```
-
-```bash
-$ cdk synth
-$ cdk deploy
-```
-
-![ALT](./asset/Cloudformation.png)
-
-## Running the service through the circuit breaker
+## Testing the service through the circuit breaker
 
 To provide circuit breaker capabilities to the Lambda microservice, you must send the name or function ARN of the Lambda function to the Step Functions workflow:
 
@@ -200,7 +177,7 @@ To simulate a successful run, use the HelloWorld Lambda function provided by pas
 ## JSON
 ```
 {
-  "TargetLambda": "circuit-breaker-stack-HelloWorldFunction-pP1HNkJGugQz"
+  "TargetLambda": "circuit-breaker-stack-HelloWorldFunction-xxxxxxxxxxxx"
 }
 ```
 
@@ -215,7 +192,7 @@ To simulate a timeout, use the TestCircuitBreaker Lambda function by passing the
 ## JSON
 ```
 {
-  "TargetLambda": "circuit-breaker-stack-TestCircuitBreakerFunction-mKeyyJq4BjQ7"
+  "TargetLambda": "circuit-breaker-stack-TestCircuitBreakerFunction-xxxxxxxxxxxx"
 }
 ```
 
@@ -234,7 +211,21 @@ To avoid incurring additional charges, clean up all the created resources. Run t
 ```bash
 sam delete --stack-name circuit-breaker-stack --region <region name>
 ```
+or
 
-This lab showed how to implement the circuit breaker pattern using Step Functions, Lambda, DynamoDB and .Net Core 6.0.  This pattern can help prevent system degradation in service failures or timeouts.
+```bash
+cdk destroy
+```
 
+This lab showed how to implement the circuit breaker pattern using Step Functions, Lambda, DynamoDB and .NET 6.0.  This pattern can help prevent system degradation in service failures or timeouts. 
+
+Blog reference:- [https://aws.amazon.com/blogs/compute/using-the-circuit-breaker-pattern-with-aws-step-functions-and-amazon-dynamodb/](https://aws.amazon.com/blogs/compute/using-the-circuit-breaker-pattern-with-aws-step-functions-and-amazon-dynamodb/) 
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## License
+
+This library is licensed under the MIT-0 License. See the LICENSE file.
 
