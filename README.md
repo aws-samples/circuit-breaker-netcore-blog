@@ -52,12 +52,6 @@ var serviceDetails = _dbContext.QueryAsync<CircuitBreaker>(serviceName, QueryOpe
                     {currentTimeStamp}).GetRemainingAsync();
 ```
 
-### TTL feature for deleting expired items
-
-DynamoDB's TTL feature is used to delete the expired items from the CircuitBreaker table. DynamoDB’s time to live (TTL) allows you to define a per-item timestamp to determine when an item is no longer needed. I have defined the ExpiryTimeStamp as the TTL attribute. At some point after the date and time of the ExpiryTimeStamp, typically within 48 hours, DynamoDB deletes the item from the CircuitBreaker table without consuming write throughput. DynamoDB determines the deletion time and there is no guarantee about when the deletion will occur. 
-
-![ALT](./asset/start.png)
-
 
 ## Prerequisites
 
@@ -160,6 +154,11 @@ cdk deploy
 
 
 ## Testing the service through the circuit breaker
+
+The step functions workflow will be deployed by the SAM or CDK looks as below: 
+
+![ALT](./asset/start.png)
+
 
 To provide circuit breaker capabilities to the Lambda microservice, you must send the name or function ARN of the Lambda function to the Step Functions workflow:
 
