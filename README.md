@@ -57,10 +57,20 @@ var serviceDetails = _dbContext.QueryAsync<CircuitBreaker>(serviceName, QueryOpe
 
 For this walkthrough, you need:
 
-- An [AWS](https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Fportal.aws.amazon.com%2Fbilling%2Fsignup%2Fresume&client_id=signup) account and an AWS user with AdministratorAccess (see the [instructions](https://console.aws.amazon.com/iam/home#/roles%24new?step=review&commonUseCase=EC2%2BEC2&selectedUseCase=EC2&policies=arn:aws:iam::aws:policy%2FAdministratorAccess) on the [AWS Identity and Access Management](http://aws.amazon.com/iam) (IAM) console)
+- An [AWS](https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Fportal.aws.amazon.com%2Fbilling%2Fsignup%2Fresume&client_id=signup) account
+- An AWS IAM user or role with permissions to create and manage the following services:
+  - AWS Lambda (create functions, update code)
+  - AWS Step Functions (create and execute state machines)
+  - Amazon DynamoDB (create tables, read/write data)
+  - AWS CloudFormation (create/update stacks)
+  - IAM (create roles and policies for Lambda and Step Functions)
+  - Amazon CloudWatch Logs (create log groups)
+  - AWS X-Ray (for tracing)
+  
+  You can use the AWS managed policy `PowerUserAccess` with additional IAM permissions, or create a custom policy with the specific permissions listed above. For more information, see [AWS Identity and Access Management](http://aws.amazon.com/iam) (IAM) best practices.
 - Access to the following AWS services: [AWS Lambda](https://aws.amazon.com/lambda/), [AWS Step Functions](https://aws.amazon.com/step-functions/), and [Amazon DynamoDB](https://aws.amazon.com/dynamodb/).
 - AWS SAM CLI using the instructions [here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
-- .NET 6.0 SDK installed
+- .NET 10.0 SDK installed (updated from .NET 6.0 which reached end-of-life)
 - [JetBrains Rider](https://www.jetbrains.com/rider/) or [Microsoft Visual Studio 2017](https://visualstudio.microsoft.com/) or later (or [Visual Studio Code](https://code.visualstudio.com/))
 
 

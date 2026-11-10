@@ -23,14 +23,25 @@ Resources:
     Properties:
       CodeUri: ./GetCircuitStatusLambda/src/GetCircuitStatusLambda/
       Handler: GetCircuitStatusLambda::GetCircuitStatusLambda.GetCircuitStatus::FunctionHandler
-      Runtime: dotnet6
+      Runtime: dotnet10
       MemorySize: 256
       Timeout: 30
       Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess
+        - DynamoDBReadPolicy:
+            TableName: !Ref CircuitBreakerTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
+            - Effect: Allow
+              Action:
+                - xray:PutTraceSegments
+                - xray:PutTelemetryRecords
+              Resource: '*'
 
 
   UpdateCircuitStatusFunction:
@@ -38,42 +49,71 @@ Resources:
     Properties:
       CodeUri: ./UpdateCircuitStatusLambda/src/UpdateCircuitStatusLambda/
       Handler: UpdateCircuitStatusLambda::UpdateCircuitStatusLambda.UpdateCircuitStatus::FunctionHandler
-      Runtime: dotnet6
+      Runtime: dotnet10
       MemorySize: 256
       Timeout: 30
       Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess      
+        - DynamoDBWritePolicy:
+            TableName: !Ref CircuitBreakerTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
+            - Effect: Allow
+              Action:
+                - xray:PutTraceSegments
+                - xray:PutTelemetryRecords
+              Resource: '*'      
 
   TestCircuitBreakerFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: ./TestCircuitBreaker/src/TestCircuitBreaker/
       Handler: TestCircuitBreaker::TestCircuitBreaker.Function::FunctionHandler
-      Runtime: dotnet6
+      Runtime: dotnet10
       MemorySize: 256
       Timeout: 30
       Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess
-  
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
+            - Effect: Allow
+              Action:
+                - xray:PutTraceSegments
+                - xray:PutTelemetryRecords
+              Resource: '*'
+
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: ./HelloWorld/src/HelloWorld/
       Handler: HelloWorld::HelloWorld.Function::FunctionHandler
-      Runtime: dotnet6
+      Runtime: dotnet10
       MemorySize: 256
       Timeout: 30
       Policies:
-        - AmazonDynamoDBFullAccess
-        - CloudWatchLogsFullAccess
-        - AWSXrayFullAccess
-        - AWSStepFunctionsFullAccess
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
+            - Effect: Allow
+              Action:
+                - xray:PutTraceSegments
+                - xray:PutTelemetryRecords
+              Resource: '*'
 
 
   CircuitBreakerTable:
@@ -90,9 +130,11 @@ Resources:
           AttributeType: S
         - AttributeName: ExpireTimeStamp
           AttributeType: N
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       TimeToLiveSpecification:
         AttributeName: ExpireTimeStamp
         Enabled: true
