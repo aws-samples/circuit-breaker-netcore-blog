@@ -1,0 +1,10 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "circuit-breaker-stack"
+resolve_s3 = true
+s3_prefix = "circuit-breaker-stack"
+region = "us-east-1"
+profile = "default"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []

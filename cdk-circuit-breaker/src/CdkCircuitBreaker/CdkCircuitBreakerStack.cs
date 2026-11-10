@@ -19,21 +19,12 @@ namespace CdkCircuitBreaker
                 RoleName = "LambdaExecutionRole",
                 AssumedBy = new ServicePrincipal("lambda.amazonaws.com")
             });
-            
-            iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("AmazonDynamoDBFullAccess"));
-            iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("CloudWatchLogsFullAccess"));
-            iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("AWSXrayFullAccess"));
-            iamLambdaRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("AWSStepFunctionsFullAccess"));
 
             var iamStepFunctionRole = new Role(this,"step_functions_basic_execution", new RoleProps
             {
                 RoleName = "step_functions_basic_execution",
                 AssumedBy = new ServicePrincipal("states.amazonaws.com")
             });
-            
-            iamStepFunctionRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("CloudWatchLogsFullAccess"));
-            iamStepFunctionRole.AddManagedPolicy(ManagedPolicy.FromManagedPolicyArn(this,"AWSLambdaRole","arn:aws:iam::aws:policy/service-role/AWSLambdaRole"));
-            iamStepFunctionRole.AddManagedPolicy(ManagedPolicy.FromAwsManagedPolicyName("AWSXrayFullAccess"));
             #endregion iamroles
             
             #region DynamoDB tables
@@ -54,7 +45,9 @@ namespace CdkCircuitBreaker
                 TimeToLiveAttribute = "ExpireTimeStamp",
                 RemovalPolicy = RemovalPolicy.DESTROY,
                 ReadCapacity = 5,
-                WriteCapacity = 5
+                WriteCapacity = 5,
+                Encryption = TableEncryption.AWS_MANAGED,
+                PointInTimeRecovery = true
             });
             
             #endregion
@@ -64,22 +57,48 @@ namespace CdkCircuitBreaker
             var getCircuitStatusLambda = new Function(this,"GetCircuitStatus", new FunctionProps
             {
                 FunctionName = "GetCircuitStatus",
-                Runtime = Runtime.DOTNET_6,
+                Runtime = Runtime.DOTNET_10,
                 Handler = "GetCircuitStatusLambda::GetCircuitStatusLambda.GetCircuitStatus::FunctionHandler",
                 Role = iamLambdaRole,
                 Code = Code.FromAsset("lambdas/GetCircuitStatusLambda.zip"),
                 Timeout = Duration.Seconds(300)
             });
-            
+
             var updateCircuitStatusLambda = new Function(this,"UpdateCircuitStatus", new FunctionProps
             {
                 FunctionName = "UpdateCircuitStatus",
-                Runtime = Runtime.DOTNET_6,
+                Runtime = Runtime.DOTNET_10,
                 Handler = "UpdateCircuitStatusLambda::UpdateCircuitStatusLambda.UpdateCircuitStatus::FunctionHandler",
                 Role = iamLambdaRole,
                 Code = Code.FromAsset("lambdas/UpdateCircuitStatusLambda.zip"),
                 Timeout = Duration.Seconds(300)
             });
+
+            // Grant least-privilege permissions to Lambda role
+            circuitBreakerTable.GrantReadWriteData(iamLambdaRole);
+
+            iamLambdaRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Effect = Effect.ALLOW,
+                Actions = new[]
+                {
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                },
+                Resources = new[] { $"arn:aws:logs:{this.Region}:{this.Account}:log-group:/aws/lambda/*" }
+            }));
+
+            iamLambdaRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Effect = Effect.ALLOW,
+                Actions = new[]
+                {
+                    "xray:PutTraceSegments",
+                    "xray:PutTelemetryRecords"
+                },
+                Resources = new[] { "*" }
+            }));
             
             #endregion
             
@@ -163,7 +182,51 @@ namespace CdkCircuitBreaker
                 TracingEnabled = true,
                 Definition = stepDefinition
             });
-            
+
+            // Grant least-privilege permissions to Step Functions role
+            getCircuitStatusLambda.GrantInvoke(iamStepFunctionRole);
+            updateCircuitStatusLambda.GrantInvoke(iamStepFunctionRole);
+
+            iamStepFunctionRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Effect = Effect.ALLOW,
+                Actions = new[]
+                {
+                    "lambda:InvokeFunction"
+                },
+                Resources = new[] { "*" }
+            }));
+
+            iamStepFunctionRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Effect = Effect.ALLOW,
+                Actions = new[]
+                {
+                    "logs:CreateLogDelivery",
+                    "logs:GetLogDelivery",
+                    "logs:UpdateLogDelivery",
+                    "logs:DeleteLogDelivery",
+                    "logs:ListLogDeliveries",
+                    "logs:PutResourcePolicy",
+                    "logs:DescribeResourcePolicies",
+                    "logs:DescribeLogGroups"
+                },
+                Resources = new[] { "*" }
+            }));
+
+            iamStepFunctionRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Effect = Effect.ALLOW,
+                Actions = new[]
+                {
+                    "xray:PutTraceSegments",
+                    "xray:PutTelemetryRecords",
+                    "xray:GetSamplingRules",
+                    "xray:GetSamplingTargets"
+                },
+                Resources = new[] { "*" }
+            }));
+
             #endregion
         }
     }
